@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Create your Croissant account.">
+  <link rel="icon" type="image/png" href="assests/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <title>Create an account — Croissant</title>
+</head>
+<body class="auth-body">
+  <main class="auth-shell auth-shell-signup">
+    <a class="auth-brand" href="../" aria-label="Croissant home"><img src="assests/logo.png" alt=""><span>Croissant</span></a>
+    <section class="auth-card" aria-labelledby="auth-title">
+      <div class="auth-card-heading">
+        <span class="auth-mark" aria-hidden="true">✳</span>
+        <h1 id="auth-title">Make yourself at home</h1>
+        <p>A little space for all your big questions.</p>
+      </div>
+      <form id="signup-form" class="auth-form" autocomplete="off" novalidate>
+        <div class="auth-field"><label for="full-name">Full name</label><input id="full-name" name="fullName" type="text" autocomplete="off" placeholder="Your name" required readonly><small class="auth-field-error" id="full-name-error"></small></div>
+        <div class="auth-field"><label for="username">Username</label><input id="username" name="username" type="text" autocomplete="off" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" placeholder="Choose a username" required readonly><small class="auth-field-hint">3–24 letters, numbers, or underscores.</small><small class="auth-field-error" id="username-error"></small></div>
+        <div class="auth-field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="off" placeholder="you@example.com" required readonly><small class="auth-field-error" id="email-error"></small></div>
+        <div class="auth-field"><label for="signup-password">Password</label><div class="auth-password-field"><input id="signup-password" name="password" type="password" autocomplete="off" placeholder="Create a password" required readonly><button class="auth-password-toggle" type="button" data-password-toggle="signup-password" aria-label="Show password" aria-pressed="false">Show</button></div>
+          <div class="password-strength" aria-live="polite"><div class="password-strength-track"><span id="strength-meter"></span></div><span id="strength-label">Password strength</span></div>
+          <ul class="password-requirements" aria-label="Password requirements">
+            <li data-requirement="length">At least 8 characters</li><li data-requirement="letter">An uppercase and lowercase letter</li><li data-requirement="number">At least one number</li>
+          </ul>
+          <small class="auth-field-error" id="signup-password-error"></small>
+        </div>
+        <div class="auth-field"><label for="confirm-password">Confirm password</label><div class="auth-password-field"><input id="confirm-password" name="confirmPassword" type="password" autocomplete="off" placeholder="Enter your password again" required readonly><button class="auth-password-toggle" type="button" data-password-toggle="confirm-password" aria-label="Show password" aria-pressed="false">Show</button></div><small class="auth-field-error" id="confirm-password-error"></small></div>
+        <label class="auth-checkbox auth-terms" for="terms"><input id="terms" name="terms" type="checkbox" required><span>I agree to the Terms and Conditions</span></label>
+        <small class="auth-field-error auth-terms-error" id="terms-error"></small>
+        <button class="auth-submit" type="submit">Create account <span aria-hidden="true">→</span></button>
+        <p class="auth-feedback" id="signup-feedback" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+    <p class="auth-switch">Already have an account? <a href="login.html">Log in</a></p>
+    <a class="auth-back-link" href="../">← Back to home</a>
+  </main>
+  <script src="auth.js"></script>
+</body>
+</html>
