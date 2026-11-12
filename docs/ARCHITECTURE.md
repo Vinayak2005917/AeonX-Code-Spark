@@ -6,7 +6,7 @@
 
 Croissant lets a user chat with a model, optionally attach an image, request calculator or graphing tools, and play a spoken version of an assistant response. It provides a small, static landing and chat interface backed by one FastAPI application. The likely primary user is an individual exploring questions; the code does not define distinct user roles.
 
-The implementation favors a small monolithic backend and static browser pages. The browser owns presentation and interaction; FastAPI owns request handling and invokes a LangChain agent; configured external providers supply model inference and text-to-speech. There is no account system, durable conversation store, or assessment domain model.
+The implementation favors a small monolithic backend and static browser pages. The browser owns presentation and interaction; FastAPI owns request handling and invokes a LangChain agent; configured external providers supply model inference and text-to-speech. There is no real account system, durable conversation store, or assessment domain model. The login page includes five hard-coded demo profiles and a frontend-only profile view; it does not authenticate to the backend.
 
 ```mermaid
 flowchart LR
@@ -33,7 +33,7 @@ flowchart LR
   Pages -. no persistence/database .-> API
 ```
 
-**Implemented:** Static HTML, CSS, and JavaScript; FastAPI; LangChain agent invocation; image-to-model input; calculator and plotter components; streamed tool text/component events; TTS. **Partially implemented:** Frontend-only login and signup screens provide validation and explanatory feedback but do not authenticate or create accounts. **Absent:** professor/student portals, assessments, grading, OCR, database, role authorization, and moderation. The repository README is empty (0 bytes), so it has no context sections to link here; source links are used instead.
+**Implemented:** Static HTML, CSS, and JavaScript; FastAPI; LangChain agent invocation; image-to-model input; calculator and plotter components; streamed tool text/component events; TTS. **Partially implemented:** Login validates five hard-coded fictional profiles in the browser, stores only the selected profile ID in `sessionStorage`, and opens a demo profile page. Sample credentials remain in frontend source and are not displayed in the UI. Signup remains UI-only. There is no server-side authentication or account creation. **Absent:** professor/student portals, assessments, grading, OCR, database, role authorization, and moderation. The repository README is empty (0 bytes), so it has no context sections to link here; source links are used instead.
 
 ## 2. Architectural layers
 
@@ -53,7 +53,7 @@ The requested professor/student presentation and assessment lifecycle are **prop
 |---|---|---|
 | Landing page | Introduces Croissant and links to chat, login, and signup. | Static assets and shared stylesheet; links to the chat page and frontend-only auth pages. |
 | Chat page and script | Captures prompt, selected model, optional image; sends one WebSocket request; renders text, tool/component events, errors, and audio controls. | Browser APIs, Marked and DOMPurify CDN scripts, `styles.css`, static component documents, FastAPI `/croissant` and `/speak`. See [`frontend/script.js`](../frontend/script.js). |
-| Auth UI | Login/signup forms, password visibility, client-side validation, and non-authentication status messages. | Static HTML/CSS and [`frontend/auth.js`](../frontend/auth.js); no backend calls, session, or stored credentials. |
+| Auth UI | Login/signup forms, password visibility, client-side validation, and demo profile sign-in. | Static HTML/CSS and [`frontend/auth.js`](../frontend/auth.js); login checks a fixed local list, stores only a profile ID in per-tab `sessionStorage`, and routes to `frontend/dashboard.html`. No backend calls or account creation. |
 | FastAPI app | Defines `/croissant` HTTP and WebSocket routes, `/speak`, `/health`, and permissive CORS middleware. | `agent_response`, `sarvam_tts`, and WebSocket event context. It does not serve the frontend files. See [`app.py`](../app.py). |
 | Agent wrapper | Creates an OpenAI-compatible `ChatOpenAI` client and LangChain agent, prepares text or image input, invokes the agent, and returns the final message content. | AICredits-compatible model API, `system_promt.md`, `send_text`, `send_component`, LangGraph in-memory saver. See [`agent.py`](../agent.py) and [`system_promt.md`](../system_promt.md). |
 | Tool/event bridge | Agent tools forward text or named components into the active WebSocket. | [`tools.py`](../tools.py) uses context-local active WebSocket state and schedules JSON sends on the asyncio loop in [`websocket.py`](../websocket.py). `send_tool_update` exists but is not called by the current tool functions. |
@@ -330,7 +330,7 @@ This is proposed; no diagram node corresponds to a current route or database tab
 
 | Area | Observed implementation | Recommended improvement (not implemented) |
 |---|---|---|
-| Authentication and authorization | No server-side auth or role checks. Auth pages are explicitly frontend-only. | Add a real identity provider/session model and enforce student, faculty, and administrative roles server-side before adding protected educational workflows. |
+| Authentication and authorization | The browser supports demo-only checks against five profiles. No server-side auth or role checks exist; the demo dashboard is not a protected backend resource. | Add a real identity provider/session model and enforce student, faculty, and administrative roles server-side before adding protected educational workflows. |
 | CORS / transport | FastAPI permits all origins, methods, and headers. UI currently uses a local HTTP API URL and derives `ws`/`wss` from its scheme. | Restrict origins, methods, and headers per deployment; use HTTPS/WSS and environment-based API origin configuration. |
 | Credentials | Provider keys are read from environment via dotenv. No key values are needed in browser code. | Keep secrets in a managed secret store in deployment, rotate on exposure, and avoid logging them. |
 | File handling | Frontend accepts image MIME types; backend base64-decodes image content. No explicit size limit, allowlist validation, malware scan, or persistent file store is visible. | Validate content and size server-side; isolate processing; apply retention/deletion controls. Add safe PDF/OCR ingestion only when designed. |

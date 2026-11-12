@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Your Croissant demo profile.">
+  <link rel="icon" type="image/png" href="assests/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <title>Your profile — Croissant</title>
+</head>
+<body class="auth-body">
+  <main class="auth-shell demo-dashboard-shell" id="demo-dashboard">
+    <header class="demo-dashboard-header">
+      <a class="auth-brand" href="../" aria-label="Croissant home"><img src="assests/logo.png" alt=""><span>Croissant</span></a>
+      <button class="demo-sign-out" id="demo-sign-out" type="button">Sign out</button>
+    </header>
+    <section class="auth-card demo-dashboard-card" aria-labelledby="dashboard-title">
+      <div class="auth-card-heading">
+        <span class="auth-mark" aria-hidden="true">✳</span>
+        <p class="demo-badge">FRONTEND DEMO PROFILE</p>
+        <h1 id="dashboard-title">Welcome, <span id="dashboard-name"></span></h1>
+        <p>Your demo profile is signed in for this browser tab.</p>
+      </div>
+      <div class="demo-profile-summary">
+        <div><span>Email</span><strong id="dashboard-email"></strong></div>
+        <div><span>Username</span><strong id="dashboard-username"></strong></div>
+        <div><span>Location</span><strong id="dashboard-location"></strong></div>
+      </div>
+      <div class="demo-dashboard-note">This is a local sign-in preview. It does not create an account or unlock backend services.</div>
+      <a class="auth-submit demo-chat-link" href="index.html">Open the Croissant assistant <span aria-hidden="true">→</span></a>
+    </section>
+    <a class="auth-back-link" href="../">← Back to home</a>
+  </main>
+  <script src="auth.js"></script>
+</body>
+</html>
