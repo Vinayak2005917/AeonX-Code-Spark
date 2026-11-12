@@ -1,94 +1,101 @@
-﻿
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Croissant</title>
-
-<link rel="icon" type="image/png" href="assests/logo.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&display=swap" rel="stylesheet">
-
-<link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Meet Croissant, a thoughtful AI assistant for questions, images, calculations, and graphs.">
+  <link rel="icon" type="image/png" href="frontend/assests/logo.png">
+  <link rel="stylesheet" href="frontend/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&display=swap" rel="stylesheet">
+  <title>Croissant — a little more thoughtful</title>
 </head>
-
 <body>
+  <main class="landing-page">
+    <header class="landing-nav">
+      <a class="landing-brand" href="./" aria-label="Croissant home">
+        <img src="frontend/assests/logo.png" alt="">
+        <span>Croissant</span>
+      </a>
+      <nav aria-label="Main navigation">
+        <a class="landing-nav-link" href="#how-it-works">How it works</a>
+        <a class="landing-nav-cta" href="frontend/index.html">Open the assistant <span aria-hidden="true">↗</span></a>
+        <div class="landing-account-links">
+          <a class="landing-login-link" href="frontend/login.html">Login</a>
+          <a class="landing-signup-link" href="frontend/signup.html">Sign Up</a>
+        </div>
+      </nav>
+    </header>
 
-<div aria-hidden="true">
-  <img class="scatter scatter-baguette" src="assests/Scatter assets/bagget.png" alt="">
-  <img class="scatter scatter-croissant" src="assests/Scatter assets/croissant.png" alt="">
-  <img class="scatter scatter-cupcake" src="assests/Scatter assets/cupcake.png" alt="">
-  <img class="scatter scatter-tea" src="assests/Scatter assets/tea.png" alt="">
-  <img class="scatter scatter-tea-container" src="assests/Scatter assets/tea_container.png" alt="">
-</div>
-
-<img class="flourish flourish-top-center" src="assests/flourish_svg_assets/top_center_divider.svg" alt="">
-<img class="flourish flourish-bottom-center" src="assests/flourish_svg_assets/bottom_center_divider.svg" alt="">
-<img class="flourish flourish-top-left" src="assests/flourish_svg_assets/top_left_corner.svg" alt="">
-<img class="flourish flourish-top-right" src="assests/flourish_svg_assets/top_right_corner.svg" alt="">
-<img class="flourish flourish-bottom-left" src="assests/flourish_svg_assets/bottom_left_corner.svg" alt="">
-<img class="flourish flourish-bottom-right" src="assests/flourish_svg_assets/bottom_right_corner.svg" alt="">
-
-<div id="chat"></div>
-
-<div id="input-area">
-
-  <div id="status"></div>
-
-  <div id="branding">
-    <a id="chat-home" href="../" aria-label="Back to Croissant home">
-      <img src="assests/logo.png" alt="">
-      <span><strong>Croissant</strong></span>
-    </a>
-  </div>
-
-  <div id="oven-row">
-    <div id="model-selector-stack" aria-hidden="true">
-      <div class="top-page top-page-next" data-model-index="1">
-        <img src="assests/top_page.png" alt="">
-        <span class="top-page-label">GPT-5.6 Luna</span>
+    <section class="landing-hero" aria-labelledby="hero-title">
+      <div class="landing-copy">
+        <p class="landing-eyebrow"><span aria-hidden="true">✳</span> A curious mind, freshly baked</p>
+        <h1 id="hero-title">Good questions<br>deserve <em>good company.</em></h1>
+        <p class="landing-intro">Meet Croissant, your thoughtful AI sidekick for untangling ideas, exploring images, and turning “what if?” into something you can see.</p>
+        <div class="landing-actions">
+          <a class="landing-primary" href="frontend/index.html">Start a conversation <span aria-hidden="true">→</span></a>
+          <a class="landing-secondary" href="#what-you-can-do">Take a look around</a>
+        </div>
+        <div class="landing-note"><span class="landing-note-mark" aria-hidden="true">✦</span><span>Questions, sketches, half-formed ideas — all welcome.</span></div>
       </div>
-      <img
-        id="model-selector"
-        src="assests/model_selector.png"
-        alt=""
-      >
-      <div class="top-page" data-model-index="0">
-        <img src="assests/top_page.png" alt="">
-        <span class="top-page-label">GPT-6 Luna</span>
+      <div class="landing-art" aria-label="Croissant's illustrated bakery assistant" role="img">
+        <div class="landing-art-halo"></div>
+        <img class="landing-spark landing-spark-one" src="frontend/assests/flourish_svg_assets/top_right_corner.svg" alt="">
+        <img class="landing-mascot" src="frontend/assests/mascot.png" alt="">
+        <div class="landing-art-caption"><span class="landing-caption-dot"></span> Your little helper is ready</div>
+        <div class="landing-chat-card"><span class="landing-chat-icon" aria-hidden="true">✎</span><span>“Can you help me figure this out?”</span></div>
       </div>
-    </div>
+      <div class="landing-scroll" aria-hidden="true"><span></span> A little more below</div>
+    </section>
 
-    <div id="input-container">
-      <div id="image-preview" hidden>
-        <img id="image-preview-thumb" alt="">
-        <span id="image-preview-name"></span>
-        <button id="remove-image" type="button" aria-label="Remove attached image">×</button>
+    <section class="landing-features" id="what-you-can-do" aria-labelledby="features-title">
+      <div class="landing-section-heading">
+        <p class="landing-eyebrow">A few things up our sleeve</p>
+        <h2 id="features-title">Curiosity takes many forms.</h2>
+        <p>Bring the question. Croissant will help you find a way in.</p>
       </div>
-      <input
-        id="query"
-        placeholder="Message..."
-        autocomplete="off"
-      />
-      <button id="send" type="button" aria-label="Drag down to send">
-        <img src="assests/handle.png" alt="">
-      </button>
-    </div>
-  </div>
+      <div class="landing-feature-grid">
+        <article class="landing-feature-card">
+          <span class="landing-feature-icon" aria-hidden="true">✧</span>
+          <h3>Think it through</h3>
+          <p>Explore a question, work through a tricky idea, or get a fresh perspective in a back-and-forth conversation.</p>
+          <span class="landing-card-doodle" aria-hidden="true">~</span>
+        </article>
+        <article class="landing-feature-card">
+          <span class="landing-feature-icon" aria-hidden="true">▧</span>
+          <h3>Look closer</h3>
+          <p>Share an image alongside your question and start a conversation about what you see.</p>
+          <span class="landing-card-doodle" aria-hidden="true">✳</span>
+        </article>
+        <article class="landing-feature-card">
+          <span class="landing-feature-icon" aria-hidden="true">⌁</span>
+          <h3>Make it make sense</h3>
+          <p>Work through a calculation or bring a mathematical idea to life with interactive graphs.</p>
+          <span class="landing-card-doodle" aria-hidden="true">∿</span>
+        </article>
+      </div>
+    </section>
 
-</div>
+    <section class="landing-how" id="how-it-works" aria-labelledby="how-title">
+      <div class="landing-how-copy">
+        <p class="landing-eyebrow">No recipe required</p>
+        <h2 id="how-title">Start wherever you are.</h2>
+        <p>There’s no special prompt to learn. Just say what you’re thinking, add an image if it helps, and let the conversation take shape.</p>
+        <a class="landing-text-link" href="frontend/index.html">Come on in <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="landing-steps" aria-label="How to start">
+        <div class="landing-step"><span class="landing-step-number">01</span><div><h3>Bring a question</h3><p>Big, small, or still taking shape.</p></div></div>
+        <div class="landing-step"><span class="landing-step-number">02</span><div><h3>Explore together</h3><p>Chat, share an image, or try a tool.</p></div></div>
+        <div class="landing-step"><span class="landing-step-number">03</span><div><h3>Follow the thread</h3><p>Keep asking until it clicks.</p></div></div>
+      </div>
+    </section>
 
-<div id="drop-overlay" aria-hidden="true">Drop an image onto the oven</div>
-
-<div id="request-metadata" aria-live="polite">
-  <span>Thread: <strong id="thread-id"></strong></span>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/marked@18.2.0/lib/marked.umd.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js"></script>
-<script src="script.js"></script>
-
+    <footer class="landing-footer">
+      <a class="landing-brand" href="./" aria-label="Croissant home"><img src="frontend/assests/logo.png" alt=""><span>Croissant</span></a>
+      <p>A small space for big questions.</p>
+      <a class="landing-footer-link" href="frontend/index.html">Start a conversation <span aria-hidden="true">↗</span></a>
+    </footer>
+  </main>
 </body>
 </html>
