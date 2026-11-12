@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2D Equation Plotter</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 15px; color: #3d3027; background: #fffaf2; font: 14px/1.4 system-ui, sans-serif; }
+    .panel { width: min(100%, 620px); margin: auto; padding: 17px; border: 1px solid #ead9c5; border-radius: 18px; background: linear-gradient(145deg, #fffdf9, #f7ecde); box-shadow: 0 12px 30px #53351e1c; }
+    h1 { margin: 0 0 12px; color: #795438; font-size: 18px; }
+    label { display: block; margin-bottom: 5px; color: #705642; font-weight: 600; }
+    .equation-row { display: flex; gap: 8px; }
+    input { min-width: 0; border: 1px solid #dfcbb4; border-radius: 9px; padding: 10px 11px; color: #3d3027; background: white; font: 15px ui-monospace, monospace; }
+    #equation { flex: 1; }
+    button { border: 0; border-radius: 9px; padding: 0 16px; color: white; background: #795438; font: 600 14px system-ui, sans-serif; cursor: pointer; }
+    button:hover { background: #65452e; }
+    .ranges { display: flex; gap: 12px; margin: 11px 0; }
+    .ranges label { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 400; }
+    .ranges input { width: 76px; padding: 6px 8px; font-size: 13px; }
+    canvas { display: block; width: 100%; height: 310px; border: 1px solid #e7d8c6; border-radius: 10px; background: #fff; }
+    #message { min-height: 20px; margin: 8px 2px 0; color: #9a493c; font-size: 12px; }
+    #message:empty { display: none; }
+    .hint { margin: 0 0 9px; color: #8a7567; font-size: 12px; }
+    @media(max-width: 430px) { body { padding: 9px; } .panel { padding: 12px; } canvas { height: 270px; } button { padding: 0 11px; } }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <h1>2D equation plotter</h1>
+    <p class="hint">Enter y = f(x) or x = f(y). Supports arithmetic, powers, parentheses, and sin, cos, tan, sqrt, abs, log, exp.</p>
+    <label for="equation">Equation</label>
+    <form id="plot-form" class="equation-row">
+      <input id="equation" autocomplete="off" spellcheck="false" aria-label="Equation y equals f of x">
+      <button type="submit">Plot</button>
+    </form>
+    <div class="ranges">
+      <label for="x-min">x min <input id="x-min" type="number" value="-10" step="1"></label>
+      <label for="x-max">x max <input id="x-max" type="number" value="10" step="1"></label>
+    </div>
+    <canvas id="graph" aria-label="Graph of the entered equation"></canvas>
+    <div id="message" role="status" aria-live="polite"></div>
+  </main>
+  <script>
+    const equationInput = document.getElementById('equation');
+    const canvas = document.getElementById('graph');
+    const ctx = canvas.getContext('2d');
+    const message = document.getElementById('message');
+    const params = new URLSearchParams(location.search);
+    equationInput.value = (params.get('equation') || 'x^2').slice(0, 120);
+
+    function compile(source, variable) {
+      const tokens = source.match(/(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?|[a-zA-Z_]+|[()+\-*/^]/gi) || [];
+      if (tokens.join('').replace(/\s/g, '').toLowerCase() !== source.replace(/\s/g, '').toLowerCase()) throw Error('Use numbers, x, operators, parentheses, and supported functions only.');
+      let at = 0;
+      const peek = () => tokens[at];
+      const take = () => tokens[at++];
+      function primary() {
+        const token = take();
+        if (!token) throw Error('Incomplete equation.');
+        if (token === '(') { const node = expression(); if (take() !== ')') throw Error('Missing closing parenthesis.'); return node; }
+        if (/^(?:\d|\.)/.test(token)) return () => Number(token);
+        if (/^[a-z]+$/i.test(token)) {
+          const name = token.toLowerCase();
+          if (name === variable) return value => value;
+          if (name === 'pi') return () => Math.PI;
+          if (name === 'e') return () => Math.E;
+          const funcs = { sin: Math.sin, cos: Math.cos, tan: Math.tan, sqrt: Math.sqrt, abs: Math.abs, log: Math.log, exp: Math.exp };
+          const fn = funcs[name];
+          if (!fn) throw Error(`Unknown name: ${token}`);
+          if (peek() !== '(') throw Error(`${name} needs parentheses.`);
+          take(); const arg = expression();
+          if (take() !== ')') throw Error('Missing closing parenthesis.');
+          return x => fn(arg(x));
+        }
+        throw Error(`Unexpected token: ${token}`);
+      }
+      function power() {
+        let left = primary();
+        if (peek() === '^') { take(); const right = unary(); const previous = left; left = x => Math.pow(previous(x), right(x)); }
+        return left;
+      }
+      function unary() {
+        if (peek() === '+') { take(); return unary(); }
+        if (peek() === '-') { take(); const value = unary(); return x => -value(x); }
+        return power();
+      }
+      function term() {
+        let left = unary();
+        while (peek() === '*' || peek() === '/') { const op = take(), previous = left, right = unary(); left = op === '*' ? x => previous(x) * right(x) : x => previous(x) / right(x); }
+        return left;
+      }
+      function expression() {
+        let left = term();
+        while (peek() === '+' || peek() === '-') { const op = take(), previous = left, right = term(); left = op === '+' ? x => previous(x) + right(x) : x => previous(x) - right(x); }
+        return left;
+      }
+      const fn = expression();
+      if (at !== tokens.length) throw Error(`Unexpected token: ${tokens[at]}`);
+      return fn;
+    }
+
+    function draw() {
+      const width = canvas.clientWidth, height = canvas.clientHeight;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      const minX = Number(document.getElementById('x-min').value);
+      const maxX = Number(document.getElementById('x-max').value);
+      if (!Number.isFinite(minX) || !Number.isFinite(maxX) || maxX <= minX) { message.textContent = 'Choose an x min smaller than x max.'; return; }
+      let fn, plotXFromY = false;
+      try {
+        const equation = equationInput.value.trim();
+        const equalsAt = equation.indexOf('=');
+        if (equalsAt >= 0) {
+          if (equation.indexOf('=', equalsAt + 1) >= 0) throw Error('Use one equals sign, like y = x^2.');
+          const left = equation.slice(0, equalsAt).trim().toLowerCase();
+          if (left !== 'x' && left !== 'y') throw Error('Start the equation with x or y, like y = x^2.');
+          plotXFromY = left === 'x';
+          fn = compile(equation.slice(equalsAt + 1), plotXFromY ? 'y' : 'x');
+        } else fn = compile(equation, 'x');
+      }
+      catch (error) { message.textContent = error.message; return; }
+      message.textContent = '';
+      const scale = (maxX - minX) / 10;
+      const minY = -scale * 5, maxY = scale * 5;
+      const px = x => (x - minX) / (maxX - minX) * width;
+      const py = y => height - (y - minY) / (maxY - minY) * height;
+      ctx.lineWidth = 1; ctx.strokeStyle = '#eee5da'; ctx.fillStyle = '#8a7567'; ctx.font = '11px system-ui';
+      for (let i = 0; i <= 10; i++) {
+        const x = minX + (maxX - minX) * i / 10, y = minY + (maxY - minY) * i / 10;
+        ctx.beginPath(); ctx.moveTo(px(x), 0); ctx.lineTo(px(x), height); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, py(y)); ctx.lineTo(width, py(y)); ctx.stroke();
+        ctx.fillText(Number(x.toPrecision(3)), Math.min(width - 30, Math.max(2, px(x) + 3)), Math.min(height - 3, Math.max(12, py(0) - 4)));
+        if (i % 2 === 0) ctx.fillText(Number(y.toPrecision(3)), 3, Math.min(height - 3, Math.max(12, py(y) - 3)));
+      }
+      ctx.strokeStyle = '#9b8068'; ctx.lineWidth = 1.5;
+      if (minX <= 0 && maxX >= 0) { ctx.beginPath(); ctx.moveTo(px(0), 0); ctx.lineTo(px(0), height); ctx.stroke(); }
+      if (minY <= 0 && maxY >= 0) { ctx.beginPath(); ctx.moveTo(0, py(0)); ctx.lineTo(width, py(0)); ctx.stroke(); }
+      ctx.strokeStyle = '#a36d3d'; ctx.lineWidth = 2.5; ctx.beginPath();
+      let started = false, previousY = null;
+      const samples = Math.max(300, Math.ceil(width * 1.5));
+      for (let i = 0; i <= samples; i++) {
+        const inputValue = plotXFromY
+          ? minY + (maxY - minY) * i / samples
+          : minX + (maxX - minX) * i / samples;
+        let value; try { value = fn(inputValue); } catch { value = NaN; }
+        const x = plotXFromY ? value : inputValue;
+        const y = plotXFromY ? inputValue : value;
+        if (!Number.isFinite(value) || Math.abs(value) > (plotXFromY ? Math.abs(maxX) : Math.abs(maxY)) * 20 || (previousY !== null && Math.abs(y - previousY) > Math.abs(maxY) * 2)) { started = false; previousY = null; continue; }
+        const sx = px(x), sy = py(y);
+        if (started) ctx.lineTo(sx, sy); else { ctx.moveTo(sx, sy); started = true; }
+        previousY = y;
+      }
+      ctx.stroke();
+    }
+    document.getElementById('plot-form').addEventListener('submit', event => { event.preventDefault(); draw(); });
+    document.getElementById('x-min').addEventListener('change', draw);
+    document.getElementById('x-max').addEventListener('change', draw);
+    new ResizeObserver(draw).observe(canvas);
+    draw();
+  </script>
+</body>
+</html>

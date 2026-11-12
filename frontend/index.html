@@ -1,0 +1,92 @@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Croissant</title>
+
+<link rel="icon" type="image/png" href="assests/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+<div aria-hidden="true">
+  <img class="scatter scatter-baguette" src="assests/Scatter assets/bagget.png" alt="">
+  <img class="scatter scatter-croissant" src="assests/Scatter assets/croissant.png" alt="">
+  <img class="scatter scatter-cupcake" src="assests/Scatter assets/cupcake.png" alt="">
+  <img class="scatter scatter-tea" src="assests/Scatter assets/tea.png" alt="">
+  <img class="scatter scatter-tea-container" src="assests/Scatter assets/tea_container.png" alt="">
+</div>
+
+<img class="flourish flourish-top-center" src="assests/flourish_svg_assets/top_center_divider.svg" alt="">
+<img class="flourish flourish-bottom-center" src="assests/flourish_svg_assets/bottom_center_divider.svg" alt="">
+<img class="flourish flourish-top-left" src="assests/flourish_svg_assets/top_left_corner.svg" alt="">
+<img class="flourish flourish-top-right" src="assests/flourish_svg_assets/top_right_corner.svg" alt="">
+<img class="flourish flourish-bottom-left" src="assests/flourish_svg_assets/bottom_left_corner.svg" alt="">
+<img class="flourish flourish-bottom-right" src="assests/flourish_svg_assets/bottom_right_corner.svg" alt="">
+
+<div id="chat"></div>
+
+<div id="input-area">
+
+  <div id="status"></div>
+
+  <div id="branding">
+    <img src="assests/logo.png" alt="Croissant">
+    <span><strong>Croissant</strong></span>
+  </div>
+
+  <div id="oven-row">
+    <div id="model-selector-stack" aria-hidden="true">
+      <div class="top-page top-page-next" data-model-index="1">
+        <img src="assests/top_page.png" alt="">
+        <span class="top-page-label">GPT-5.6 Luna</span>
+      </div>
+      <img
+        id="model-selector"
+        src="assests/model_selector.png"
+        alt=""
+      >
+      <div class="top-page" data-model-index="0">
+        <img src="assests/top_page.png" alt="">
+        <span class="top-page-label">GPT-6 Luna</span>
+      </div>
+    </div>
+
+    <div id="input-container">
+      <div id="image-preview" hidden>
+        <img id="image-preview-thumb" alt="">
+        <span id="image-preview-name"></span>
+        <button id="remove-image" type="button" aria-label="Remove attached image">×</button>
+      </div>
+      <input
+        id="query"
+        placeholder="Message..."
+        autocomplete="off"
+      />
+      <button id="send" type="button" aria-label="Drag down to send">
+        <img src="assests/handle.png" alt="">
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<div id="drop-overlay" aria-hidden="true">Drop an image onto the oven</div>
+
+<div id="request-metadata" aria-live="polite">
+  <span>Thread: <strong id="thread-id"></strong></span>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@18.2.0/lib/marked.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>

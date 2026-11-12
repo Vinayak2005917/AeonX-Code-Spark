@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calculator</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; padding: 18px; display: grid; place-items: center; color: #3d3027; background: #fffaf2; font: 16px/1.4 system-ui, sans-serif; }
+    .calculator { width: min(100%, 340px); padding: 20px; border: 1px solid #ead9c5; border-radius: 20px; background: linear-gradient(145deg, #fffdf9, #f7ecde); box-shadow: 0 12px 30px #53351e1c; }
+    h1 { margin: 0 0 14px; color: #795438; font: 600 18px/1.2 system-ui, sans-serif; }
+    output { display: block; min-height: 72px; margin-bottom: 14px; padding: 16px 14px; overflow: hidden; border: 1px solid #e7d8c6; border-radius: 12px; background: #fff; text-align: right; font-size: clamp(25px, 8vw, 34px); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+    button { min-height: 54px; border: 1px solid #e6d5c1; border-radius: 12px; color: #503b2b; background: #fff; font: 600 18px system-ui, sans-serif; cursor: pointer; touch-action: manipulation; }
+    button:hover { background: #f7ead9; }
+    button:active { transform: scale(.97); }
+    button.operator { color: #fffaf2; border-color: #795438; background: #795438; }
+    button.operator:hover { background: #65452e; }
+    button.equal { color: white; border-color: #a36d3d; background: #a36d3d; }
+    button.wide { grid-column: span 2; }
+    button:focus-visible { outline: 3px solid #d3a36f; outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <main class="calculator" aria-label="Calculator">
+    <h1>Calculator</h1>
+    <output id="display" aria-live="polite">0</output>
+    <div class="keys" id="keys">
+      <button type="button" data-action="clear">AC</button><button type="button" data-action="sign">±</button><button type="button" data-action="percent">%</button><button type="button" class="operator" data-op="÷">÷</button>
+      <button type="button" data-digit="7">7</button><button type="button" data-digit="8">8</button><button type="button" data-digit="9">9</button><button type="button" class="operator" data-op="×">×</button>
+      <button type="button" data-digit="4">4</button><button type="button" data-digit="5">5</button><button type="button" data-digit="6">6</button><button type="button" class="operator" data-op="−">−</button>
+      <button type="button" data-digit="1">1</button><button type="button" data-digit="2">2</button><button type="button" data-digit="3">3</button><button type="button" class="operator" data-op="+">+</button>
+      <button type="button" class="wide" data-digit="0">0</button><button type="button" data-action="decimal">.</button><button type="button" class="equal" data-action="equals">=</button>
+    </div>
+  </main>
+  <script>
+    const display = document.getElementById('display');
+    const keys = document.getElementById('keys');
+    let current = '0', stored = null, operator = null, fresh = false;
+    function show(value = current) {
+      current = String(value);
+      display.textContent = current.length > 15 ? Number(current).toPrecision(10) : current;
+    }
+    function calculate(a, b, op) {
+      if (op === '+') return a + b;
+      if (op === '−') return a - b;
+      if (op === '×') return a * b;
+      if (op === '÷') return b === 0 ? NaN : a / b;
+    }
+    function enterOperator(next) {
+      const value = Number(current);
+      if (operator && !fresh) {
+        const result = calculate(stored, value, operator);
+        if (!Number.isFinite(result)) { current = 'Error'; stored = null; operator = null; fresh = true; show(); return; }
+        stored = result;
+        show(result);
+      } else stored = value;
+      operator = next;
+      fresh = true;
+    }
+    keys.addEventListener('click', event => {
+      const key = event.target.closest('button');
+      if (!key) return;
+      if (key.dataset.digit !== undefined) {
+        const digit = key.dataset.digit;
+        current = fresh || current === '0' || current === 'Error' ? digit : current + digit;
+        fresh = false; show(); return;
+      }
+      if (key.dataset.op) { enterOperator(key.dataset.op); return; }
+      switch (key.dataset.action) {
+        case 'clear': current = '0'; stored = null; operator = null; fresh = false; show(); break;
+        case 'decimal': if (fresh || current === 'Error') { current = '0.'; fresh = false; } else if (!current.includes('.')) current += '.'; show(); break;
+        case 'sign': if (current !== '0' && current !== 'Error') show(-Number(current)); break;
+        case 'percent': if (current !== 'Error') show(Number(current) / 100); break;
+        case 'equals':
+          if (!operator || stored === null || current === 'Error') break;
+          { const result = calculate(stored, Number(current), operator); show(Number.isFinite(result) ? Number(result.toPrecision(12)) : 'Error'); }
+          stored = null; operator = null; fresh = true; break;
+      }
+    });
+    document.addEventListener('keydown', event => {
+      if (/^[0-9]$/.test(event.key)) keys.querySelector(`[data-digit="${event.key}"]`).click();
+      else if (event.key === '.') keys.querySelector('[data-action="decimal"]').click();
+      else if (event.key === 'Enter' || event.key === '=') keys.querySelector('[data-action="equals"]').click();
+      else if (event.key === 'Escape') keys.querySelector('[data-action="clear"]').click();
+      else if (event.key === '+') enterOperator('+');
+      else if (event.key === '-') enterOperator('−');
+      else if (event.key === '*') enterOperator('×');
+      else if (event.key === '/') { event.preventDefault(); enterOperator('÷'); }
+    });
+  </script>
+</body>
+</html>

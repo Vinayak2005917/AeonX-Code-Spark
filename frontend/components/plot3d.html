@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3D Surface Plotter</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 16px; color: #3d3027; background: #fffaf2; font: 14px/1.4 system-ui, sans-serif; }
+    .panel { max-width: 1100px; margin: auto; padding: 17px; border: 1px solid #ead9c5; border-radius: 18px; background: linear-gradient(145deg, #fffdf9, #f7ecde); box-shadow: 0 12px 30px #53351e1c; }
+    h1 { margin: 0 0 7px; color: #795438; font-size: 18px; }
+    .hint { margin: 0 0 12px; color: #8a7567; font-size: 12px; }
+    form { display: flex; gap: 8px; }
+    input { min-width: 0; border: 1px solid #dfcbb4; border-radius: 9px; padding: 10px 11px; color: #3d3027; background: white; font: 15px ui-monospace, monospace; }
+    #equation { flex: 1; }
+    button { border: 0; border-radius: 9px; padding: 0 16px; color: white; background: #795438; font: 600 14px system-ui, sans-serif; cursor: pointer; }
+    .controls { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; color: #705642; }
+    .controls label { display: flex; align-items: center; gap: 6px; }
+    .controls input { width: 74px; padding: 6px; font-size: 13px; }
+    canvas { display: block; width: 100%; height: 430px; border: 1px solid #e7d8c6; border-radius: 10px; background: #fff; cursor: grab; touch-action: none; }
+    canvas:active { cursor: grabbing; }
+    #message { min-height: 19px; margin: 7px 2px 0; color: #9a493c; font-size: 12px; }
+    @media(max-width: 500px) { body { padding: 9px; } .panel { padding: 12px; } canvas { height: 340px; } }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <h1>3D surface plotter</h1>
+    <p class="hint">Plot z = f(x, y). Drag the graph to rotate. Supports arithmetic, powers, parentheses, sin, cos, tan, sqrt, abs, log, exp.</p>
+    <form id="plot-form"><input id="equation" aria-label="Surface equation" autocomplete="off" spellcheck="false"><button>Plot</button></form>
+    <div class="controls">
+      <label>x and y range ±<input id="range" type="number" value="5" min="1" max="20" step="1"></label>
+      <label><input id="fill" type="checkbox" checked> Color surface</label>
+    </div>
+    <canvas id="surface" aria-label="Interactive three dimensional surface graph"></canvas>
+    <div id="message" role="status" aria-live="polite"></div>
+  </main>
+  <script>
+    const input = document.getElementById('equation'), canvas = document.getElementById('surface');
+    const ctx = canvas.getContext('2d'), message = document.getElementById('message');
+    input.value = (new URLSearchParams(location.search).get('equation') || 'sin(sqrt(x^2+y^2))').slice(0, 120);
+    let yaw = -0.65, pitch = 0.85, drag = null;
+    function compile(source) {
+      source = source.trim().replace(/^z\s*=\s*/i, '');
+      const tokens = source.match(/(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?|[a-zA-Z_]+|[()+\-*/^]/gi) || [];
+      if (!tokens.length || tokens.join('').toLowerCase() !== source.replace(/\s/g, '').toLowerCase()) throw Error('Use x, y, numbers, operators, and supported functions.');
+      let i = 0; const peek = () => tokens[i], take = () => tokens[i++];
+      function expr() {
+        let f = term();
+        while (peek() === '+' || peek() === '-') { const op = take(), a = f, b = term(); f = op === '+' ? (x,y) => a(x,y)+b(x,y) : (x,y) => a(x,y)-b(x,y); }
+        return f;
+      }
+      function term() {
+        let f = unary();
+        while (peek() === '*' || peek() === '/') { const op = take(), a = f, b = unary(); f = op === '*' ? (x,y) => a(x,y)*b(x,y) : (x,y) => a(x,y)/b(x,y); }
+        return f;
+      }
+      function unary() {
+        if (peek() === '+') { take(); return unary(); }
+        if (peek() === '-') { take(); const f = unary(); return (x,y) => -f(x,y); }
+        return power();
+      }
+      function power() {
+        let f = atom();
+        if (peek() === '^') { take(); const a = f, b = unary(); f = (x,y) => Math.pow(a(x,y), b(x,y)); }
+        return f;
+      }
+      function atom() {
+        const t = take(); if (!t) throw Error('Incomplete equation.');
+        if (t === '(') { const f = expr(); if (take() !== ')') throw Error('Missing closing parenthesis.'); return f; }
+        if (/^(\d|\.)/.test(t)) return () => Number(t);
+        const name = t.toLowerCase();
+        if (name === 'x') return x => x;
+        if (name === 'y') return (x,y) => y;
+        if (name === 'pi') return () => Math.PI;
+        if (name === 'e') return () => Math.E;
+        const funcs = { sin: Math.sin, cos: Math.cos, tan: Math.tan, sqrt: Math.sqrt, abs: Math.abs, log: Math.log, exp: Math.exp };
+        if (!funcs[name]) throw Error(`Unknown name: ${t}`);
+        if (take() !== '(') throw Error(`${name} needs parentheses.`);
+        const arg = expr(); if (take() !== ')') throw Error('Missing closing parenthesis.');
+        return (x,y) => funcs[name](arg(x,y));
+      }
+      const f = expr(); if (i !== tokens.length) throw Error(`Unexpected token: ${tokens[i]}`); return f;
+    }
+    function draw() {
+      const w = canvas.clientWidth, h = canvas.clientHeight, dpr = devicePixelRatio || 1;
+      canvas.width = Math.round(w*dpr); canvas.height = Math.round(h*dpr); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+      let fn; try { fn = compile(input.value); } catch(e) { message.textContent = e.message; return; }
+      const range = Math.max(1, Math.min(20, Number(document.getElementById('range').value) || 5));
+      const n = Math.max(22, Math.min(40, Math.floor(w/22))), centerX=w/2, centerY=h*.55, zoom=Math.min(w,h)*.105;
+      const points = [];
+      for (let j=0;j<=n;j++) for (let i=0;i<=n;i++) {
+        const x=-range+2*range*i/n, y=-range+2*range*j/n;
+        let z; try { z=fn(x,y); } catch { z=NaN; }
+        points.push({x,y,z});
+      }
+      function project(p) {
+        const cy=Math.cos(yaw), sy=Math.sin(yaw), cp=Math.cos(pitch), sp=Math.sin(pitch);
+        const rx=p.x*cy-p.y*sy, ry=p.x*sy+p.y*cy;
+        return { x:centerX+rx*zoom, y:centerY-(ry*cp-p.z*sp)*zoom, depth:ry*sp+p.z*cp, z:p.z };
+      }
+      const projected=points.map(p => Number.isFinite(p.z) ? project({...p,z:Math.max(-range*2,Math.min(range*2,p.z))}) : null);
+      const cells=[];
+      for (let j=0;j<n;j++) for (let i=0;i<n;i++) {
+        const ids=[j*(n+1)+i,j*(n+1)+i+1,(j+1)*(n+1)+i+1,(j+1)*(n+1)+i];
+        const ps=ids.map(id=>projected[id]); if(ps.every(Boolean)) cells.push({ps,depth:ps.reduce((a,p)=>a+p.depth,0)/4});
+      }
+      cells.sort((a,b)=>a.depth-b.depth);
+      const colored=document.getElementById('fill').checked;
+      for(const cell of cells) {
+        const avg=cell.ps.reduce((a,p)=>a+p.z,0)/4;
+        ctx.beginPath(); cell.ps.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.closePath();
+        const hue=30+Math.max(-20,Math.min(30,avg/range*20));
+        ctx.fillStyle=colored?`hsla(${hue}, 47%, ${70-Math.min(18,Math.abs(avg/range)*18)}%, .8)`:'rgba(163,109,61,.1)';
+        ctx.fill(); ctx.strokeStyle='rgba(111,78,51,.42)'; ctx.lineWidth=.65; ctx.stroke();
+      }
+      message.textContent='';
+    }
+    document.getElementById('plot-form').addEventListener('submit',e=>{e.preventDefault();draw();});
+    document.getElementById('range').addEventListener('change',draw); document.getElementById('fill').addEventListener('change',draw);
+    canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);});
+    canvas.addEventListener('pointermove',e=>{if(!drag)return; yaw+=(e.clientX-drag.x)*.009;pitch=Math.max(.15,Math.min(1.45,pitch+(e.clientY-drag.y)*.008));drag={x:e.clientX,y:e.clientY};draw();});
+    canvas.addEventListener('pointerup',()=>drag=null); canvas.addEventListener('pointercancel',()=>drag=null);
+    new ResizeObserver(draw).observe(canvas); draw();
+  </script>
+</body>
+</html>
