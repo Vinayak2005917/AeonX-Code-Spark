@@ -1,6 +1,8 @@
 ﻿const chat = document.getElementById("chat");
+const audioLanguage = document.getElementById("audio-language");
 const input = document.getElementById("query");
 const button = document.getElementById("send");
+const recordButton = document.getElementById("record");
 const status = document.getElementById("status");
 const inputContainer = document.getElementById("input-container");
 const modelSelectorStack = document.getElementById("model-selector-stack");
@@ -34,6 +36,11 @@ const threadId = globalThis.crypto?.randomUUID?.()
 let busy = false;
 let attachedImage = null;
 let attachedImageUrl = null;
+let recorder = null;
+let recorderStream = null;
+let recordingChunks = [];
+let transcribing = false;
+let recordingTimeout = null;
 let fileDragDepth = 0;
 let dragStartY = null;
 let dragPointerId = null;
@@ -57,13 +64,15 @@ function hasGradingPdfs() {
 function refreshHandleState() {
   const canSend = Boolean(input.value.trim() || attachedImage);
   const canGrade = hasGradingPdfs();
-  button.disabled = busy || (!canSend && !canGrade);
+  const isRecording = recorder?.state === "recording";
+  button.disabled = busy || isRecording || (!canSend && !canGrade);
   button.setAttribute(
     "aria-label",
     canGrade ? "Drag down to grade PDFs and download the report" : "Drag down to send a message"
   );
   handwrittenPdfInput.disabled = busy;
   answerKeyPdfInput.disabled = busy;
+  recordButton.disabled = busy || transcribing;
 }
 
 function updatePdfSelection(inputElement, nameElement, defaultLabel) {
@@ -316,6 +325,7 @@ async function gradePdfs() {
     "user"
   );
   const response = addMessage("Reading the PDFs and evaluating each page…", "agent");
+  const audio = addAudioButton(response);
   status.textContent = "GRADING PDFS";
 
   try {
@@ -348,18 +358,45 @@ async function gradePdfs() {
     if (!reportBlob.size) throw new Error("The server returned an empty PDF report.");
     const reportUrl = URL.createObjectURL(reportBlob);
     reportObjectUrls.push(reportUrl);
-    const link = document.createElement("a");
-    link.href = reportUrl;
-    link.download = "croissant-graded-report.pdf";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    renderMarkdown(
-      response.querySelector(".markdown-content"),
-      "Evaluation complete. The report includes the score summary, question-by-question feedback, and the handwritten pages."
-    );
+    const downloadButton = document.createElement("a");
+    downloadButton.className = "report-download-button";
+    downloadButton.href = reportUrl;
+    downloadButton.download = "croissant-graded-report.pdf";
+    downloadButton.textContent = "Download graded report";
+    response.appendChild(downloadButton);
+    const completionText = "Evaluation complete. The report includes the score summary, question-by-question feedback, and the handwritten pages.";
+    let translatedCompletion = completionText;
+    let completionTranslationSucceeded = true;
+    try {
+      translatedCompletion = await translateText(completionText);
+    } catch (translationError) {
+      console.error("Could not translate grading completion:", translationError);
+      completionTranslationSucceeded = false;
+    }
+    renderMarkdown(response.querySelector(".markdown-content"), translatedCompletion);
+    try {
+      if (!completionTranslationSucceeded) throw new Error("Translation is unavailable.");
+      const speakParams = new URLSearchParams({
+        text: translatedCompletion,
+        language: audioLanguage.value
+      });
+      const speakResponse = await fetch(
+        `${apiEndpoints[0]}/speak?${speakParams.toString()}`,
+        { method: "POST" }
+      );
+      if (!speakResponse.ok || !speakResponse.headers.get("content-type")?.startsWith("audio/")) {
+        throw new Error("Speech endpoint did not return audio.");
+      }
+      const audioBlob = await speakResponse.blob();
+      if (!audioBlob.size) throw new Error("Speech endpoint returned empty audio.");
+      audio.setAudio(audioBlob);
+    } catch (audioError) {
+      console.error("Could not generate grading response audio:", audioError);
+      audio.setUnavailable();
+    }
 
   } catch (error) {
+    audio.setUnavailable();
     renderMarkdown(
       response.querySelector(".markdown-content"),
       `Could not grade these PDFs: ${error.message}`
@@ -449,12 +486,133 @@ function addAudioButton(message) {
       });
       audio.load();
       audioButton.disabled = false;
+      audio.play().catch(() => {
+        // Autoplay can be blocked until the user interacts with the page.
+      });
     },
     setUnavailable() {
       audioButton.textContent = "Audio unavailable";
       audioButton.disabled = true;
     }
   };
+}
+
+recordButton.addEventListener("click", async () => {
+  if (recorder?.state === "recording") {
+    clearTimeout(recordingTimeout);
+    recorder.stop();
+    return;
+  }
+  if (busy || transcribing) return;
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    status.textContent = "Voice input is not supported in this browser.";
+    return;
+  }
+
+  recordButton.disabled = true;
+  try {
+    recorderStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const preferredType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+      ? "audio/webm;codecs=opus"
+      : MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
+    recorder = new MediaRecorder(recorderStream, preferredType ? { mimeType: preferredType } : undefined);
+    recordingChunks = [];
+    recorder.addEventListener("dataavailable", event => {
+      if (event.data.size) recordingChunks.push(event.data);
+    });
+    recorder.addEventListener("stop", async () => {
+      const mimeType = recorder.mimeType || recordingChunks[0]?.type || "audio/webm";
+      const fileExtension = mimeType.includes("mp4") ? "m4a" : "webm";
+      const recording = new Blob(recordingChunks, { type: mimeType });
+      recorder = null;
+      recorderStream?.getTracks().forEach(track => track.stop());
+      recorderStream = null;
+      recordButton.classList.remove("is-recording");
+      recordButton.setAttribute("aria-label", "Start voice input");
+      recordButton.title = "Speak to type";
+      if (!recording.size) {
+        status.textContent = "No audio was recorded. Try again.";
+        refreshHandleState();
+        return;
+      }
+
+      transcribing = true;
+      refreshHandleState();
+      status.textContent = "TRANSCRIBING";
+      try {
+        const formData = new FormData();
+        formData.append("file", recording, `recording.${fileExtension}`);
+        const response = await fetch(`${apiEndpoints[0]}/transcribe`, {
+          method: "POST",
+          body: formData
+        });
+        if (!response.ok) {
+          let message = `Speech recognition failed (HTTP ${response.status}).`;
+          try {
+            message = (await response.json()).detail || message;
+          } catch {
+            // Keep the status-based error when the response is not JSON.
+          }
+          throw new Error(message);
+        }
+        const result = await response.json();
+        if (!result.transcript?.trim()) throw new Error("No speech was recognized. Try again.");
+        const existingText = input.value.trim();
+        input.value = `${existingText}${existingText ? " " : ""}${result.transcript.trim()}`;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.focus();
+        status.textContent = "Transcript added. Review it, then send.";
+      } catch (error) {
+        status.textContent = error.message;
+      } finally {
+        transcribing = false;
+        refreshHandleState();
+      }
+    }, { once: true });
+
+    recorder.start();
+    recordButton.disabled = false;
+    recordButton.classList.add("is-recording");
+    recordButton.setAttribute("aria-label", "Stop voice recording");
+    recordButton.title = "Stop recording";
+    status.textContent = "LISTENING · Click the microphone to stop";
+    refreshHandleState();
+    recordingTimeout = setTimeout(() => {
+      if (recorder?.state === "recording") recorder.stop();
+    }, 28000);
+  } catch (error) {
+    recorderStream?.getTracks().forEach(track => track.stop());
+    recorderStream = null;
+    recorder = null;
+    recordButton.classList.remove("is-recording");
+    recordButton.disabled = false;
+    status.textContent = error.name === "NotAllowedError"
+      ? "Allow microphone access to use voice input."
+      : `Could not start recording: ${error.message}`;
+    refreshHandleState();
+  }
+});
+
+async function translateText(text) {
+  const result = await fetch(`${apiEndpoints[0]}/translate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, language: audioLanguage.value })
+  });
+  if (!result.ok) {
+    let detail = `Translation failed (HTTP ${result.status}).`;
+    try {
+      detail = (await result.json()).detail || detail;
+    } catch {
+      // Use the status-based message if the server did not return JSON.
+    }
+    throw new Error(detail);
+  }
+  const data = await result.json();
+  if (typeof data.translated_text !== "string" || !data.translated_text.trim()) {
+    throw new Error("Translation returned no text.");
+  }
+  return data.translated_text;
 }
 
 async function send() {
@@ -571,9 +729,11 @@ async function send() {
     if (!speechText) {
       audio.setUnavailable();
     } else try {
+      const translatedAnswer = await translateText(speechText);
+      renderMarkdown(response.querySelector(".markdown-content"), translatedAnswer);
       const speakParams = new URLSearchParams({
-        text: speechText,
-        language: "en-IN"
+        text: translatedAnswer,
+        language: audioLanguage.value
       });
       let audioResponse;
       let audioLastError;
@@ -614,7 +774,11 @@ async function send() {
       }
       audio.setAudio(blob);
     } catch (audioError) {
-      console.error("Could not generate response audio:", audioError);
+      console.error("Could not translate or generate response audio:", audioError);
+      renderMarkdown(
+        response.querySelector(".markdown-content"),
+        `${speechText}\n\n*Translation or speech is unavailable: ${audioError.message}*`
+      );
       audio.setUnavailable();
     }
 

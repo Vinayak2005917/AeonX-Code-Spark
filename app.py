@@ -1,16 +1,53 @@
 import asyncio
 import base64
-from fastapi import FastAPI, UploadFile, File, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, UploadFile, File, WebSocket, WebSocketDisconnect, HTTPException, Body
 from fastapi.responses import Response
 from agent import agent_response
 from grading import create_graded_report
 import uvicorn
-from Sarvam import sarvam_tts
+from Sarvam import sarvam_tts, sarvam_translate, sarvam_transcribe
 from fastapi.middleware.cors import CORSMiddleware
 
 
 app=FastAPI()
 app.add_middleware(CORSMiddleware,allow_origins=["*"],allow_methods=["*"],allow_headers=["*"])
+
+@app.post("/translate")
+async def translate_text(payload: dict = Body(...)):
+    text = payload.get("text", "")
+    language = payload.get("language", "")
+    if not isinstance(text, str) or not text.strip():
+        raise HTTPException(status_code=400, detail="Text to translate is required.")
+    if language not in {"en-IN", "hi-IN", "kn-IN"}:
+        raise HTTPException(status_code=400, detail="Choose English, Hindi, or Kannada.")
+    try:
+        translated_text = await asyncio.to_thread(sarvam_translate, text, language)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Sarvam translation is unavailable right now. Please try again.",
+        ) from exc
+    return {"translated_text": translated_text}
+
+@app.post("/transcribe")
+async def transcribe_audio(file: UploadFile = File(...)):
+    audio_bytes = await file.read(15 * 1024 * 1024 + 1)
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="The recording is empty.")
+    if len(audio_bytes) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="The recording is too large. Try a shorter recording.")
+    try:
+        transcript = await asyncio.to_thread(
+            sarvam_transcribe,
+            audio_bytes,
+            file.filename or "recording.webm",
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Speech recognition is unavailable right now. Please try again.",
+        ) from exc
+    return {"transcript": transcript}
 
 @app.post("/croissant")
 async def croissant(

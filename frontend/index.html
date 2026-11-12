@@ -31,6 +31,15 @@
 <img class="flourish flourish-bottom-left" src="assests/flourish_svg_assets/bottom_left_corner.svg" alt="">
 <img class="flourish flourish-bottom-right" src="assests/flourish_svg_assets/bottom_right_corner.svg" alt="">
 
+<div id="audio-language-bar">
+  <label for="audio-language">Audio language</label>
+  <select id="audio-language" aria-label="Audio language">
+    <option value="en-IN">English</option>
+    <option value="hi-IN">Hindi</option>
+    <option value="kn-IN">Kannada</option>
+  </select>
+</div>
+
 <div id="chat"></div>
 
 <div id="input-area">
@@ -61,6 +70,12 @@
         <button id="remove-image" type="button" aria-label="Remove attached image">×</button>
       </div>
       <input id="query" placeholder="Message or extra grading notes (optional)…" autocomplete="off">
+      <button id="record" type="button" aria-label="Start voice input" title="Speak to type">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Z"></path>
+          <path d="M19 11a7 7 0 0 1-14 0M12 18v4m-4 0h8"></path>
+        </svg>
+      </button>
       <button id="send" type="button" aria-label="Drag down to send a message">
         <img src="assests/handle.png" alt="">
       </button>
