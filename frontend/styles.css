@@ -252,7 +252,7 @@ body.started .scatter {
 }
 
 body.started #input-area {
-  top: calc(100% - 200px);
+  top: calc(100% - 385px);
   transform: translateY(0);
 }
 
@@ -327,6 +327,68 @@ body.started #branding {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+#upload-row {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: min(808px, calc(100% - 232px));
+  margin: -8px auto 0;
+  transform: translateX(116px);
+}
+
+.upload-card {
+  position: relative;
+  display: flex;
+  min-height: 66px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  overflow: hidden;
+  padding: 9px 14px;
+  border: 3px dashed rgba(121, 84, 56, 0.62);
+  border-radius: 12px;
+  color: var(--page-text);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.upload-card:hover,
+.upload-card:focus-within {
+  border-color: var(--accent);
+  background: transparent;
+}
+
+.upload-title {
+  font: 600 14px "Kalam", cursive;
+}
+
+.upload-hint {
+  overflow: hidden;
+  color: var(--muted-text);
+  font: 12px Arial, sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.started #upload-row {
+  width: min(850px, 100%);
+  margin-top: 0;
+  transform: none;
+}
+
+#upload-row input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 #oven-row::before {
@@ -645,6 +707,31 @@ button#send:disabled {
     padding: 18px 14px 22px;
   }
 
+  #upload-row {
+    width: calc(100% - 126px);
+    gap: 6px;
+    margin-top: -4px;
+    transform: translateX(63px);
+  }
+
+  .upload-card {
+    min-height: 58px;
+    padding: 7px 9px;
+  }
+
+  .upload-title {
+    font-size: 12px;
+  }
+
+  .upload-hint {
+    font-size: 10px;
+  }
+
+  body.started #upload-row {
+    width: 100%;
+    transform: none;
+  }
+
   #input-container {
     padding: 25px 58px 18px 28px;
   }
@@ -692,7 +779,7 @@ button#send:disabled {
   }
 
   body.started #input-area {
-    top: calc(100% - 195px);
+    top: calc(100% - 295px);
   }
 
   .message {

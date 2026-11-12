@@ -10,7 +10,12 @@ const imagePreviewThumb = document.getElementById("image-preview-thumb");
 const imagePreviewName = document.getElementById("image-preview-name");
 const removeImageButton = document.getElementById("remove-image");
 const dropOverlay = document.getElementById("drop-overlay");
+const handwrittenPdfInput = document.getElementById("handwritten-answers");
+const answerKeyPdfInput = document.getElementById("marking-scheme");
+const handwrittenPdfName = document.getElementById("handwritten-answers-name");
+const answerKeyPdfName = document.getElementById("marking-scheme-name");
 const apiEndpoints = ["http://localhost:8000"];
+const reportObjectUrls = [];
 
 const models = [
   { displayName: "GPT-6 Luna", modelId: "openai/gpt-6-luna" },
@@ -44,6 +49,45 @@ let activeTopPage = modelSelectorStack.querySelector(
 const pageDismissDistance = 180;
 
 threadIdElement.textContent = threadId;
+
+function hasGradingPdfs() {
+  return Boolean(handwrittenPdfInput.files.length && answerKeyPdfInput.files.length);
+}
+
+function refreshHandleState() {
+  const canSend = Boolean(input.value.trim() || attachedImage);
+  const canGrade = hasGradingPdfs();
+  button.disabled = busy || (!canSend && !canGrade);
+  button.setAttribute(
+    "aria-label",
+    canGrade ? "Drag down to grade PDFs and download the report" : "Drag down to send a message"
+  );
+  handwrittenPdfInput.disabled = busy;
+  answerKeyPdfInput.disabled = busy;
+}
+
+function updatePdfSelection(inputElement, nameElement, defaultLabel) {
+  const file = inputElement.files[0];
+  if (file && !(file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"))) {
+    inputElement.value = "";
+    status.textContent = "Please choose a PDF file.";
+  } else {
+    status.textContent = "";
+  }
+  nameElement.textContent = inputElement.files[0]?.name || defaultLabel;
+  refreshHandleState();
+}
+
+handwrittenPdfInput.addEventListener("change", () => {
+  updatePdfSelection(handwrittenPdfInput, handwrittenPdfName, "Choose a PDF of your answers");
+});
+answerKeyPdfInput.addEventListener("change", () => {
+  updatePdfSelection(answerKeyPdfInput, answerKeyPdfName, "Choose the questions and answers PDF");
+});
+
+window.addEventListener("pagehide", () => {
+  reportObjectUrls.forEach(URL.revokeObjectURL);
+});
 
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
@@ -234,6 +278,7 @@ function setAttachedImage(file) {
   imagePreviewName.textContent = file.name;
   imagePreview.hidden = false;
   status.textContent = "";
+  refreshHandleState();
 }
 
 function clearAttachedImage() {
@@ -242,9 +287,92 @@ function clearAttachedImage() {
   attachedImageUrl = null;
   imagePreviewThumb.removeAttribute("src");
   imagePreview.hidden = true;
+  refreshHandleState();
 }
 
 removeImageButton.addEventListener("click", clearAttachedImage);
+
+async function gradePdfs() {
+  const handwrittenPdf = handwrittenPdfInput.files[0];
+  const answerKeyPdf = answerKeyPdfInput.files[0];
+  if (busy || !handwrittenPdf || !answerKeyPdf) return;
+
+  for (const file of [handwrittenPdf, answerKeyPdf]) {
+    if (file.size > 25 * 1024 * 1024) {
+      status.textContent = "Each PDF must be 25 MB or smaller.";
+      return;
+    }
+  }
+
+  const gradingNotes = input.value.trim();
+  busy = true;
+  document.body.classList.add("started");
+  button.disabled = true;
+  input.disabled = true;
+  refreshHandleState();
+
+  addMessage(
+    `Please grade my handwritten answers using the uploaded answer key.${gradingNotes ? `\n\nExtra notes: ${gradingNotes}` : ""}`,
+    "user"
+  );
+  const response = addMessage("Reading the PDFs and evaluating each page…", "agent");
+  status.textContent = "GRADING PDFS";
+
+  try {
+    const endpoint = new URL("/croissant", apiEndpoints[0]);
+    endpoint.searchParams.set("model_name", modelId);
+    endpoint.searchParams.set("thread_id", threadId);
+    if (gradingNotes) endpoint.searchParams.set("query", gradingNotes);
+
+    const formData = new FormData();
+    formData.append("answer_key_pdf", answerKeyPdf, answerKeyPdf.name);
+    formData.append("handwritten_pdf", handwrittenPdf, handwrittenPdf.name);
+    const result = await fetch(endpoint, { method: "POST", body: formData });
+
+    if (!result.ok) {
+      let errorMessage = `The grading request failed (HTTP ${result.status}).`;
+      try {
+        const errorBody = await result.json();
+        if (errorBody.detail) errorMessage = errorBody.detail;
+      } catch {
+        // Keep the status-based message when the server does not return JSON.
+      }
+      throw new Error(errorMessage);
+    }
+
+    if (!result.headers.get("content-type")?.includes("application/pdf")) {
+      throw new Error("The server response was not a PDF report.");
+    }
+
+    const reportBlob = await result.blob();
+    if (!reportBlob.size) throw new Error("The server returned an empty PDF report.");
+    const reportUrl = URL.createObjectURL(reportBlob);
+    reportObjectUrls.push(reportUrl);
+    const link = document.createElement("a");
+    link.href = reportUrl;
+    link.download = "croissant-graded-report.pdf";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    renderMarkdown(
+      response.querySelector(".markdown-content"),
+      "Evaluation complete. The report includes the score summary, question-by-question feedback, and the handwritten pages."
+    );
+
+  } catch (error) {
+    renderMarkdown(
+      response.querySelector(".markdown-content"),
+      `Could not grade these PDFs: ${error.message}`
+    );
+  } finally {
+    busy = false;
+    button.disabled = false;
+    input.disabled = false;
+    refreshHandleState();
+    status.textContent = "";
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }
+}
 
 window.addEventListener("dragenter", event => {
   if (!event.dataTransfer?.types.includes("Files")) return;
@@ -338,6 +466,7 @@ async function send() {
   const displayedQuery = query || "What is in this image?";
 
   busy = true;
+  refreshHandleState();
 
   document.body.classList.add("started");
 
@@ -494,8 +623,8 @@ async function send() {
 
   } finally {
     busy = false;
+    refreshHandleState();
 
-    button.disabled = false;
     input.disabled = false;
 
     status.textContent = "";
@@ -646,8 +775,9 @@ function handlePointerMove(event) {
   const snapThreshold = bounds.height *
     (parseFloat(handleStyles.getPropertyValue("--handle-snap-threshold")) / 100);
   const hasText = Boolean(input.value.trim() || attachedImage);
+  const hasAction = hasText || hasGradingPdfs();
 
-  if (hasText && (passedSnapThreshold || handleCenter >= snapThreshold)) {
+  if (hasAction && (passedSnapThreshold || handleCenter >= snapThreshold)) {
     passedSnapThreshold = true;
     snapHandle(true);
     event.preventDefault();
@@ -680,7 +810,7 @@ function handlePointerUp(event) {
   const snapThreshold = bounds.height *
     (parseFloat(handleStyles.getPropertyValue("--handle-snap-threshold")) / 100);
   const releasedBelowThreshold = event.clientY - bounds.top >= snapThreshold;
-  const shouldSnapToBottom = Boolean(input.value.trim() || attachedImage) &&
+  const shouldSnapToBottom = Boolean(input.value.trim() || attachedImage || hasGradingPdfs()) &&
     (passedSnapThreshold || releasedBelowThreshold);
   button.releasePointerCapture(event.pointerId);
   button.classList.remove("is-dragging");
@@ -689,7 +819,9 @@ function handlePointerUp(event) {
 
   if (shouldSnapToBottom) {
     snapHandle(true);
-    if (input.value.trim() || attachedImage) {
+    if (hasGradingPdfs()) {
+      gradePdfs();
+    } else if (input.value.trim() || attachedImage) {
       send();
     }
   } else {
@@ -710,3 +842,6 @@ input.addEventListener("keydown", e => {
     send();
   }
 });
+
+input.addEventListener("input", refreshHandleState);
+refreshHandleState();
