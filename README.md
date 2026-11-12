@@ -50,6 +50,7 @@ The technology stack is organised around the following components:
 * **Grading Engine:** Applying marking rubrics, assigning scores and calculating partial credits.
 * **Human-in-the-Loop:** Incorporating teacher feedback and verified evaluations to improve model performance.
 * **Application Layer:** Managing data, processing requests and presenting evaluation results.
+
 | Feature / Component | Technology Stack |
 |---|---|
 | Programming Language | Python |
