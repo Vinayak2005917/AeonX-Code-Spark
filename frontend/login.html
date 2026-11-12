@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Log in to Croissant.">
+  <link rel="icon" type="image/png" href="assests/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <title>Log in — Croissant</title>
+</head>
+<body class="auth-body">
+  <main class="auth-shell">
+    <a class="auth-brand" href="../" aria-label="Croissant home"><img src="assests/logo.png" alt=""><span>Croissant</span></a>
+    <section class="auth-card" aria-labelledby="auth-title">
+      <div class="auth-card-heading">
+        <span class="auth-mark" aria-hidden="true">✳</span>
+        <h1 id="auth-title">Welcome back</h1>
+        <p>Pick up right where curiosity left off.</p>
+      </div>
+      <form id="login-form" class="auth-form" autocomplete="off" novalidate>
+        <label for="login-identity">Email or username</label>
+        <input id="login-identity" name="identity" type="text" autocomplete="off" placeholder="you@example.com" required readonly>
+        <div class="auth-label-row"><label for="login-password">Password</label><a href="#forgot-password" id="forgot-password">Forgot password?</a></div>
+        <div class="auth-password-field">
+          <input id="login-password" name="password" type="password" autocomplete="off" placeholder="Your password" required readonly>
+          <button class="auth-password-toggle" type="button" data-password-toggle="login-password" aria-label="Show password" aria-pressed="false">Show</button>
+        </div>
+        <label class="auth-checkbox" for="login-remember"><input id="login-remember" type="checkbox" name="remember"><span>Remember me</span></label>
+        <button class="auth-submit" type="submit">Log in <span aria-hidden="true">→</span></button>
+        <p class="auth-feedback" id="login-feedback" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+    <p class="auth-switch">New to Croissant? <a href="signup.html">Create an account</a></p>
+    <a class="auth-back-link" href="../">← Back to home</a>
+  </main>
+  <script src="auth.js"></script>
+</body>
+</html>
