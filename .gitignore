@@ -4,3 +4,10 @@ backend/.venv-glm-run/
 backend/.ocr-packages/
 backend/.uv-cache/
 backend/.uv-cache-ocr/
+__pycache__/
+.venv/
+backend/.venv-glm/
+backend/.venv-glm-run/
+backend/.ocr-packages/
+backend/.uv-cache/
+backend/.uv-cache-ocr/
