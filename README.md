@@ -38,6 +38,34 @@ The project aims to develop an AI-powered system that reads and evaluates handwr
 10. **Human-in-the-Loop Learning:** Use teacher-verified corrections and evaluations as feedback to improve future model performance.
 11. **Evaluation Comparison:** Compare AI-generated marks against teacher-assigned marks to measure grading accuracy and consistency.
 
+## Technology Stack
 
+Croissant uses a combination of Python-based technologies, machine learning frameworks and web development tools to build an automated answer-sheet evaluation pipeline.
+Each technology serves a specific purpose, ranging from PDF processing and handwriting recognition to semantic answer evaluation, rubric-based grading and result generation.
+
+The technology stack is organised around the following components:
+* **Document Processing:** Handling uploaded answer sheets and converting PDF pages into processable images.
+* **Handwriting Recognition:** Extracting handwritten content using OCR models.
+* **Answer Evaluation:** Analysing extracted responses and comparing them with reference answers.
+* **Grading Engine:** Applying marking rubrics, assigning scores and calculating partial credits.
+* **Human-in-the-Loop:** Incorporating teacher feedback and verified evaluations to improve model performance.
+* **Application Layer:** Managing data, processing requests and presenting evaluation results.
+| Feature / Component | Technology Stack |
+|---|---|
+| Programming Language | Python |
+| PDF Processing | PyMuPDF, pdf2image |
+| Image Preprocessing | OpenCV, Pillow |
+| Handwriting Recognition (OCR) | Trained OCR Model, PyTorch |
+| Question-wise Answer Extraction | Python, NLP |
+| Semantic Answer Evaluation | Sentence Transformers |
+| Reference Answer Matching | Embedding Similarity, Cosine Similarity |
+| Rubric-based Grading | Python, Rule-based Scoring Engine |
+| Partial Credit Allocation | Weighted Scoring Algorithm |
+| Human-in-the-Loop Learning | Teacher Feedback, Model Fine-tuning |
+| Data Storage | SQLite / PostgreSQL |
+| Backend API | FastAPI |
+| Frontend | React.js |
+| Performance Evaluation | scikit-learn, Pandas, NumPy |
+| Version Control | Git, GitHub |
 
 
