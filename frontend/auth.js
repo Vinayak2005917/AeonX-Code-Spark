@@ -1,5 +1,15 @@
 const passwordToggles = document.querySelectorAll("[data-password-toggle]");
 
+const demoProfiles = [
+  { id: "olivia-bennett", name: "Olivia Bennett", username: "oliviab", email: "olivia.bennett@example.co.uk", password: "Croissant!Olivia24", location: "London, UK" },
+  { id: "james-thompson", name: "James Thompson", username: "jamest", email: "james.thompson@example.co.uk", password: "Croissant!James24", location: "Manchester, UK" },
+  { id: "amelia-clarke", name: "Amelia Clarke", username: "ameliac", email: "amelia.clarke@example.co.uk", password: "Croissant!Amelia24", location: "Edinburgh, UK" },
+  { id: "noah-patel", name: "Noah Patel", username: "noahp", email: "noah.patel@example.co.uk", password: "Croissant!Noah24", location: "Birmingham, UK" },
+  { id: "isla-morgan", name: "Isla Morgan", username: "islam", email: "isla.morgan@example.co.uk", password: "Croissant!Isla24", location: "Cardiff, UK" }
+];
+
+const demoSessionKey = "croissant-demo-profile-id";
+
 document.querySelectorAll(".auth-form input[readonly]").forEach(input => {
   input.addEventListener("focus", () => input.removeAttribute("readonly"), { once: true });
 });
@@ -18,17 +28,52 @@ passwordToggles.forEach(toggle => {
 const loginForm = document.getElementById("login-form");
 if (loginForm) {
   const feedback = document.getElementById("login-feedback");
+  const identityInput = document.getElementById("login-identity");
+  const passwordInput = document.getElementById("login-password");
+
   loginForm.addEventListener("submit", event => {
     event.preventDefault();
     feedback.textContent = "";
+    feedback.classList.remove("is-visible", "is-error");
+    loginForm.querySelectorAll("input[readonly]").forEach(input => input.removeAttribute("readonly"));
     if (!loginForm.reportValidity()) return;
-    feedback.textContent = "Login is not connected yet. No credentials were sent or saved.";
-    feedback.classList.add("is-visible");
+
+    const identity = identityInput.value.trim().toLocaleLowerCase();
+    const profile = demoProfiles.find(candidate =>
+      candidate.email.toLocaleLowerCase() === identity || candidate.username.toLocaleLowerCase() === identity
+    );
+    if (!profile || profile.password !== passwordInput.value) {
+      feedback.textContent = "That demo profile could not be signed in. Check the email/username and password.";
+      feedback.classList.add("is-visible", "is-error");
+      return;
+    }
+
+    sessionStorage.setItem(demoSessionKey, profile.id);
+    window.location.assign("dashboard.html");
   });
   document.getElementById("forgot-password").addEventListener("click", event => {
     event.preventDefault();
-    feedback.textContent = "Password recovery will be available when account access is connected.";
+    feedback.textContent = "Password recovery is not available for demo profiles.";
     feedback.classList.add("is-visible");
+  });
+}
+
+const dashboard = document.getElementById("demo-dashboard");
+if (dashboard) {
+  const profileId = sessionStorage.getItem(demoSessionKey);
+  const profile = demoProfiles.find(candidate => candidate.id === profileId);
+  if (!profile) {
+    window.location.replace("login.html");
+  } else {
+    document.getElementById("dashboard-name").textContent = profile.name;
+    document.getElementById("dashboard-email").textContent = profile.email;
+    document.getElementById("dashboard-username").textContent = profile.username;
+    document.getElementById("dashboard-location").textContent = profile.location;
+  }
+
+  document.getElementById("demo-sign-out").addEventListener("click", () => {
+    sessionStorage.removeItem(demoSessionKey);
+    window.location.assign("login.html");
   });
 }
 
@@ -87,6 +132,7 @@ if (signupForm) {
   signupForm.addEventListener("submit", event => {
     event.preventDefault();
     feedback.textContent = "";
+    signupForm.querySelectorAll("input[readonly]").forEach(input => input.removeAttribute("readonly"));
     validatePassword();
     validateConfirmation();
     if (!fullName.value.trim()) setError("full-name-error", "Please enter your name.");

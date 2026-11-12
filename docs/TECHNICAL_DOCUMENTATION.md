@@ -248,9 +248,9 @@ There is no named format allowlist, backend MIME verification, size limit, persi
 
 ## 9. Authentication and authorization
 
-`frontend/login.html` and `frontend/signup.html` are static UI only. [`frontend/auth.js`](../frontend/auth.js) toggles password visibility, performs browser-side required/email/username/password/confirmation/terms checks, and shows messages that account access is not connected. Form submission is prevented and sends no credentials to a server. Login's remember-me checkbox is visual only; forgot-password feedback is UI-only; terms acceptance is not sent to a service. Auth inputs start `readonly` with autocomplete disabled, then become editable on first focus to discourage browser autofill. No auth tokens, cookies, sessions, or persistent credential storage are implemented.
+`frontend/login.html` and `frontend/signup.html` are static UI. [`frontend/auth.js`](../frontend/auth.js) toggles password visibility and performs browser-side validation. Login checks credentials against five fictional profiles hard-coded in the frontend source (not displayed in the page); a match stores only the selected profile ID in per-tab `sessionStorage` and navigates to [`frontend/dashboard.html`](../frontend/dashboard.html). Passwords are not written to browser storage or sent to a server. This is a demo flow, not secure authentication. Signup remains UI-only and does not create a profile. Login's remember-me checkbox is visual only; forgot-password feedback is UI-only; terms acceptance is not sent to a service. Auth inputs start `readonly` with autocomplete disabled, then become editable on first focus to discourage browser autofill. There are no backend auth tokens, cookies, server sessions, or persistent user records.
 
-There is no server authentication, user model, role system, permission check, or protected route. All FastAPI routes are public. A frontend form or a successful client-side validation must not be treated as sign-in or access control.
+There is no server authentication, user model, role system, permission check, or protected route. All FastAPI routes are public. The static demo dashboard performs only a frontend profile-ID check and is not a security boundary; a frontend form or successful client-side validation must not be treated as access control.
 
 ## 10. Business logic and important workflows
 
@@ -327,7 +327,7 @@ These are recommended evaluation methods, not current metrics or results.
 - Image attachment has no explicit application-side size cap or robust server-side content validation. PDF/OCR/handwriting support is absent.
 - The selected model ID is supplied by the frontend and is not independently allowlisted by the backend.
 - Text-to-speech adds a second external provider call; failures result in unavailable audio. Provider data handling is not configured here.
-- Frontend authentication screens do not authenticate users; all backend endpoints remain public.
+- Frontend demo sign-in checks hard-coded sample credentials; it is not real authentication, and all backend endpoints remain public.
 - There is no AI grading feature, so LLM grading variability, criterion consistency, faculty verification, and grade correctness have not been measured or implemented.
 
 ## 14. Developer contribution guidelines
