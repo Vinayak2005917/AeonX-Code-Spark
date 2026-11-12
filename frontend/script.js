@@ -686,8 +686,7 @@ async function send() {
           const componentPaths = {
             calculator: "components/calculator.html",
             plot2d: "components/plot2d.html",
-            plot3d: "components/plot3d.html",
-            periodic_table: "components/periodic-table.html"
+            plot3d: "components/plot3d.html"
           };
           const componentPath = componentPaths[message.name];
           if (componentPath) {
@@ -696,8 +695,7 @@ async function send() {
             frame.title = ({
               calculator: "Calculator",
               plot2d: "2D equation plotter",
-              plot3d: "3D surface plotter",
-              periodic_table: "Periodic table"
+              plot3d: "3D surface plotter"
             })[message.name];
             const componentUrl = new URL(componentPath, window.location.href);
             if ((message.name === "plot2d" || message.name === "plot3d") && typeof message.props?.equation === "string") {
